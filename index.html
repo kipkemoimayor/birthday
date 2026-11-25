@@ -172,11 +172,37 @@
     position: fixed; left: 50%; bottom: 22px; z-index: 6;
     transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none;
     font: 500 14px "Inter", sans-serif; color: #5a2a3e; background: #f8c8dc;
-    border: 0; border-radius: 999px; padding: 11px 22px; cursor: pointer;
+    border: 0; border-radius: 999px; padding: 11px 22px; cursor: pointer; white-space: nowrap;
     box-shadow: 0 0 24px rgba(248,200,220,.4);
     transition: opacity .5s ease, transform .5s ease;
   }
   #reopen.on { opacity: 1; pointer-events: auto; transform: translateX(-50%); }
+
+  /* mini polaroids pinned to each year (after the message is closed) */
+  .thumb {
+    position: absolute; z-index: 3; cursor: pointer;
+    width: clamp(50px, 12%, 118px);
+    background: #fdf8fb; padding: 4px 4px 10px; border-radius: 2px; border: 0;
+    box-shadow: 0 8px 22px rgba(0,0,0,.5);
+    opacity: 0; pointer-events: none;
+    transform: translate(-50%, var(--ty)) rotate(var(--tilt)) scale(.6);
+    transition: opacity .6s ease, transform .7s cubic-bezier(.3,1.5,.5,1);
+  }
+  .thumb.on { opacity: 1; pointer-events: auto; transform: translate(-50%, var(--ty)) rotate(var(--tilt)) scale(1); }
+  .thumb:hover { z-index: 4; }
+  .thumb img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center 30%; }
+  .plot.pinned .ptlabel { opacity: 0 !important; }
+
+  #lightbox {
+    position: fixed; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px; background: rgba(13,10,20,.85); backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none; transition: opacity .4s ease; cursor: pointer;
+  }
+  #lightbox.on { opacity: 1; pointer-events: auto; }
+  #lightbox .frame { background: #fdf8fb; padding: 10px 10px 0; border-radius: 3px; box-shadow: 0 20px 60px rgba(0,0,0,.6); max-width: min(420px, 100%); }
+  #lightbox img { display: block; max-width: 100%; max-height: 70vh; object-fit: contain; }
+  #lightbox .lbcap { font: italic 400 22px "Fraunces", serif; color: #5a2a3e; text-align: center; padding: 8px 0 12px; }
+  #lightbox .hint { margin-top: 14px; color: var(--muted); font-size: 13px; }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition-duration: .01s !important; animation: none !important; }
@@ -257,6 +283,10 @@
   </div>
 </section>
 <button id="reopen">💌 read the message again</button>
+<div id="lightbox" aria-hidden="true">
+  <div class="frame"><img id="lbImg" alt=""><div class="lbcap" id="lbCap"></div></div>
+  <div class="hint">tap anywhere to close</div>
+</div>
 
 <script>
 /* ============ EDIT THESE ============ */
@@ -360,6 +390,47 @@ YEARS.forEach((y, i) => {          // preload; remember which ones exist
   im.src = y.photo;
 });
 const TILTS = ["-4deg", "3deg", "-2deg", "4deg"];
+
+// mini polaroids pinned to each point: 18 & 19 above their dots, 20 & 21 below
+const plot = document.querySelector(".plot");
+const thumbs = YEARS.map((y, i) => {
+  const b = document.createElement("button");
+  b.className = "thumb";
+  b.setAttribute("aria-label", "Photo at " + y.age);
+  const above = i < 2;
+  const gap = 22;
+  b.style.left = (pts[i].x / 10) + "%";
+  b.style.top = ((above ? pts[i].y - gap : pts[i].y + gap) / 5.2) + "%";
+  b.style.setProperty("--ty", above ? "-100%" : "0%");
+  b.style.setProperty("--tilt", TILTS[i % TILTS.length]);
+  const im = document.createElement("img");
+  im.src = y.photo; im.alt = "Mel at " + y.age; im.loading = "lazy";
+  b.appendChild(im);
+  b.addEventListener("click", () => openLightbox(i));
+  plot.appendChild(b);
+  return b;
+});
+async function pinThumbs() {
+  pol.classList.remove("on");
+  plot.classList.add("pinned");
+  for (let i = 0; i < thumbs.length; i++) {
+    if (!photoOk[i]) continue;
+    await wait(180);
+    thumbs[i].classList.add("on");
+  }
+}
+function unpinThumbs() {
+  plot.classList.remove("pinned");
+  thumbs.forEach(t => t.classList.remove("on"));
+}
+const lb = document.getElementById("lightbox");
+function openLightbox(i) {
+  document.getElementById("lbImg").src = YEARS[i].photo;
+  document.getElementById("lbImg").alt = "Mel at " + YEARS[i].age;
+  document.getElementById("lbCap").textContent = YEARS[i].age;
+  lb.classList.add("on");
+}
+lb.addEventListener("click", () => lb.classList.remove("on"));
 async function showPhoto(i) {
   if (pol.classList.contains("on")) { pol.classList.remove("on"); await wait(500); }
   if (!photoOk[i]) return;
@@ -432,6 +503,7 @@ function reset() {
   starInner.classList.remove("on");
   document.getElementById("area").classList.remove("on");
   pol.classList.remove("on");
+  unpinThumbs();
   cap.innerHTML = "";
 }
 
@@ -451,10 +523,14 @@ function closeMsg() {
   if (!msg.classList.contains("on")) return;
   msg.classList.remove("on");
   reopen.classList.add("on");
+  pinThumbs();
 }
 document.getElementById("closeBtn").addEventListener("click", closeMsg);
 msg.addEventListener("click", e => { if (e.target === msg) closeMsg(); });   // tap outside the card
-addEventListener("keydown", e => { if (e.key === "Escape") closeMsg(); });
+addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (lb.classList.contains("on")) lb.classList.remove("on"); else closeMsg();
+});
 reopen.addEventListener("click", () => { reopen.classList.remove("on"); msg.classList.add("on"); });
 
 document.getElementById("replayBtn").addEventListener("click", async () => {
