@@ -72,7 +72,22 @@
   .chart-title h2 {
     font-family: "Fraunces", serif; font-weight: 400; font-size: clamp(22px, 4vw, 34px); margin-top: 6px;
   }
-  svg#chart { width: 100%; height: auto; overflow: visible; }
+  .plot { position: relative; width: 100%; }
+  svg#chart { width: 100%; height: auto; overflow: visible; display: block; }
+  .polaroid {
+    position: absolute; left: 12%; top: 1%; z-index: 3;
+    width: clamp(96px, 21%, 210px);
+    background: #fdf8fb; padding: 7px 7px 0; border-radius: 3px;
+    box-shadow: 0 14px 40px rgba(0,0,0,.55), 0 0 30px rgba(248,200,220,.18);
+    opacity: 0; transform: rotate(-4deg) translateY(10px) scale(.94);
+    transition: opacity .6s ease, transform .8s cubic-bezier(.2,.8,.2,1);
+  }
+  .polaroid.on { opacity: 1; transform: rotate(var(--tilt, -4deg)) translateY(0) scale(1); }
+  .polaroid img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 2px; background: #e9dde4; }
+  .polaroid figcaption {
+    font: italic 400 clamp(13px, 2vw, 18px) "Fraunces", serif; color: #5a2a3e;
+    text-align: center; padding: 6px 0 8px;
+  }
   .axis-label { fill: var(--muted); font: 400 13px "Inter", sans-serif; letter-spacing: .12em; text-transform: uppercase; }
   .tick { fill: var(--muted); font: 500 16px "Inter", sans-serif; }
   .tick.big { fill: var(--gold); font: 600 22px "Fraunces", serif; }
@@ -149,6 +164,11 @@
       <h2>How amazing you've become, Mel</h2>
     </div>
 
+    <div class="plot">
+    <figure class="polaroid" id="polaroid">
+      <img id="polaroidImg" alt="">
+      <figcaption id="polaroidCap"></figcaption>
+    </figure>
     <svg id="chart" viewBox="0 0 1000 520" role="img" aria-label="A line chart rising from age 18 to 21">
       <defs>
         <linearGradient id="lineGrad" x1="0" x2="1" y1="0" y2="0">
@@ -182,6 +202,7 @@
         <path d="M0,-30 L8,-9 L30,-9 L12,5 L19,28 L0,14 L-19,28 L-12,5 L-30,-9 L-8,-9 Z" fill="#ffd27a"/>
       </g>
     </svg>
+    </div>
 
     <div id="caption"></div>
   </section>
@@ -204,11 +225,13 @@
 // Put her name here, or open the page as  index.html?name=Her%20Name
 const NAME = "Mel";
 
+// Photos: put them in a "photos" folder next to index.html, named 18.jpg, 19.jpg, 20.jpg, 21.jpg
+// (or change the paths below). Any photo that's missing is simply skipped.
 const YEARS = [
-  { age: 18, score: 30, text: "Officially an adult. Unofficially still figuring it all out, and doing it beautifully." },
-  { age: 19, score: 48, text: "Growing, glowing, and quietly becoming someone people are lucky to know." },
-  { age: 20, score: 68, text: "Goodbye teens. Braver, wiser, and somehow even more yourself." },
-  { age: 21, score: 100, text: "21. The highest point, and the place our line comes to an end." }
+  { age: 18, score: 30, photo: "photos/18.jpg", text: "Officially an adult. Unofficially still figuring it all out, and doing it beautifully." },
+  { age: 19, score: 48, photo: "photos/19.jpg", text: "Growing, glowing, and quietly becoming someone people are lucky to know." },
+  { age: 20, score: 68, photo: "photos/20.jpg", text: "Goodbye teens. Braver, wiser, and somehow even more yourself." },
+  { age: 21, score: 100, photo: "photos/21.jpg", text: "21. The highest point, and the place our line comes to an end." }
 ];
 /* ==================================== */
 
@@ -287,10 +310,33 @@ star.appendChild(starInner);
 star.classList.remove("star21");
 starInner.classList.add("star21");
 
+/* ---------- photos ---------- */
+const pol = document.getElementById("polaroid"),
+      polImg = document.getElementById("polaroidImg"),
+      polCap = document.getElementById("polaroidCap");
+const photoOk = YEARS.map(() => false);
+YEARS.forEach((y, i) => {          // preload; remember which ones exist
+  if (!y.photo) return;
+  const im = new Image();
+  im.onload = () => { photoOk[i] = true; };
+  im.src = y.photo;
+});
+const TILTS = ["-4deg", "3deg", "-2deg", "4deg"];
+async function showPhoto(i) {
+  if (pol.classList.contains("on")) { pol.classList.remove("on"); await wait(500); }
+  if (!photoOk[i]) return;
+  polImg.src = YEARS[i].photo;
+  polImg.alt = "Mel at " + YEARS[i].age;
+  polCap.textContent = YEARS[i].age;
+  pol.style.setProperty("--tilt", TILTS[i % TILTS.length]);
+  requestAnimationFrame(() => pol.classList.add("on"));
+}
+
 /* ---------- caption ---------- */
 const cap = document.getElementById("caption");
 async function setCaption(i) {
   cap.style.opacity = 0;
+  showPhoto(i);
   await wait(300);
   cap.innerHTML = `<span class="yr">age ${YEARS[i].age}</span>${YEARS[i].text}`;
   cap.style.opacity = 1;
@@ -346,6 +392,7 @@ function reset() {
   ticks.forEach(t => t.style.opacity = .35);
   starInner.classList.remove("on");
   document.getElementById("area").classList.remove("on");
+  pol.classList.remove("on");
   cap.innerHTML = "";
 }
 
