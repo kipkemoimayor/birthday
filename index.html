@@ -96,14 +96,14 @@
   svg#chart { width: 100%; height: auto; overflow: visible; display: block; }
   .polaroid {
     position: absolute; left: 12%; top: 1%; z-index: 3;
-    width: clamp(96px, 21%, 210px);
+    width: clamp(90px, 19%, 190px);
     background: #fdf8fb; padding: 7px 7px 0; border-radius: 3px;
     box-shadow: 0 14px 40px rgba(0,0,0,.55), 0 0 30px rgba(248,200,220,.18);
     opacity: 0; transform: rotate(-4deg) translateY(10px) scale(.94);
     transition: opacity .6s ease, transform .8s cubic-bezier(.2,.8,.2,1);
   }
   .polaroid.on { opacity: 1; transform: rotate(var(--tilt, -4deg)) translateY(0) scale(1); }
-  .polaroid img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 2px; background: #e9dde4; }
+  .polaroid img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center 30%; border-radius: 2px; background: #e9dde4; }
   .polaroid figcaption {
     font: italic 400 clamp(13px, 2vw, 18px) "Fraunces", serif; color: #5a2a3e;
     text-align: center; padding: 6px 0 8px;
@@ -161,6 +161,22 @@
     border-radius: 999px; padding: 9px 20px; font: 400 13px "Inter", sans-serif; cursor: pointer;
   }
   .card .replay:hover { color: var(--ink); border-color: rgba(255,255,255,.4); }
+  .card { position: relative; }
+  .card .close {
+    position: absolute; top: 12px; right: 12px; width: 40px; height: 40px;
+    border-radius: 50%; border: 1px solid rgba(255,255,255,.18); background: rgba(13,10,20,.4);
+    color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer;
+  }
+  .card .close:hover { color: var(--ink); border-color: rgba(255,255,255,.4); }
+  #reopen {
+    position: fixed; left: 50%; bottom: 22px; z-index: 6;
+    transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none;
+    font: 500 14px "Inter", sans-serif; color: #5a2a3e; background: #f8c8dc;
+    border: 0; border-radius: 999px; padding: 11px 22px; cursor: pointer;
+    box-shadow: 0 0 24px rgba(248,200,220,.4);
+    transition: opacity .5s ease, transform .5s ease;
+  }
+  #reopen.on { opacity: 1; pointer-events: auto; transform: translateX(-50%); }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition-duration: .01s !important; animation: none !important; }
@@ -230,6 +246,7 @@
 
 <section id="message" aria-live="polite">
   <div class="card">
+    <button class="close" id="closeBtn" aria-label="Close">×</button>
     <div class="big21">21</div>
     <h3 id="msgTitle">Happy Birthday</h3>
     <p>From 18 to 21, I got to watch you grow, and every year with you went up. Thank you for every laugh, every lesson, and every moment I got to call you mine.</p>
@@ -239,6 +256,7 @@
     <button class="replay" id="replayBtn">↺ replay</button>
   </div>
 </section>
+<button id="reopen">💌 read the message again</button>
 
 <script>
 /* ============ EDIT THESE ============ */
@@ -428,7 +446,19 @@ document.getElementById("startBtn").addEventListener("click", async () => {
   await wait(900);
   play();
 });
+const msg = document.getElementById("message"), reopen = document.getElementById("reopen");
+function closeMsg() {
+  if (!msg.classList.contains("on")) return;
+  msg.classList.remove("on");
+  reopen.classList.add("on");
+}
+document.getElementById("closeBtn").addEventListener("click", closeMsg);
+msg.addEventListener("click", e => { if (e.target === msg) closeMsg(); });   // tap outside the card
+addEventListener("keydown", e => { if (e.key === "Escape") closeMsg(); });
+reopen.addEventListener("click", () => { reopen.classList.remove("on"); msg.classList.add("on"); });
+
 document.getElementById("replayBtn").addEventListener("click", async () => {
+  reopen.classList.remove("on");
   document.getElementById("message").classList.remove("on");
   stopFireworks();
   reset();
