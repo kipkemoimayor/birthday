@@ -5,6 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Happy 21st ✨</title>
 <meta name="description" content="A little chart about someone special.">
+<script>
+  // GoatCounter: open the page once with ?me=1 and this browser is never counted again
+  // (use ?me=0 to undo).
+  (function () {
+    var me = new URLSearchParams(location.search).get("me");
+    try {
+      if (me === "1") localStorage.setItem("skipgc", "t");
+      if (me === "0") localStorage.removeItem("skipgc");
+      if (localStorage.getItem("skipgc") === "t") return;
+    } catch (e) { if (me === "1") return; }
+    var s = document.createElement("script");
+    s.async = true;
+    s.src = "//gc.zgo.at/count.js";
+    s.setAttribute("data-goatcounter", "https://collins.goatcounter.com/count");
+    document.head.appendChild(s);
+  })();
+  function track(name, title) {
+    try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: name, title: title, event: true }); } catch (e) {}
+  }
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -215,7 +235,7 @@
     <p>From 18 to 21, I got to watch you grow, and every year with you went up. Thank you for every laugh, every lesson, and every moment I got to call you mine.</p>
     <p>This is where our line ends. Not because it wasn't beautiful, but because some stories are meant to be a chapter, not the whole book.</p>
     <p>All the best in the coming years. I hope life is kind to you, that you keep glowing, and that you find everything you deserve.</p>
-    <div class="sign">Happy 21st, and goodbye 🤍<br><span style="font-size:17px; color:var(--ink); opacity:.85;">Collins</span></div>
+    <div class="sign">Happy 21st, and goodbye 🤍</div>
     <button class="replay" id="replayBtn">↺ replay</button>
   </div>
 </section>
@@ -380,6 +400,7 @@ async function play() {
       startFireworks();
       await wait(3200);
       document.getElementById("message").classList.add("on");
+      track("reached-goodbye", "Reached the goodbye card");
     }
   }
   running = false;
@@ -397,6 +418,7 @@ function reset() {
 }
 
 document.getElementById("startBtn").addEventListener("click", async () => {
+  track("clicked-open", "Tapped open");
   document.getElementById("intro").classList.add("hide");
   await wait(700);
   document.getElementById("intro").style.display = "none";
